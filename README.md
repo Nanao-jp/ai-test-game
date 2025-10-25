@@ -127,7 +127,19 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 ## ビルド/実行
 - 既定シーン: `Assets/Scenes/SampleScene.unity`（初期は検証用）
 - 解像度: 1920x1080（可変）、ターゲット: Windows PC
-- 入力: WASD/左スティックで移動。将来的にパッド対応
+- 入力: WASD/左スティックで移動。最後に押した方向にオート射撃/近接スイング
+
+### Quickstart（見た目の適用）
+1. `Tools > Art > Setup Panel` を開く
+2. `Player/Enemy/Bullet/Exp/Background` と `Slash VFX Sprite/Prefab` を割当 → `Save SpriteSet`
+3. 必要なら `Apply Tiny Swords (Quick)` で自動選定 → `Force Apply Player Sprite Now` で即反映
+4. `Inspect Player Visual` で状態確認
+
+### 現状の実装（2025-10-25）
+- オート射撃（弾）: 最後の入力方向へ発射
+- 近接攻撃（剣）: 扇形ヒット/前方オフセット/直交スイング、斬撃VFX差し替え対応
+- EXPドロップ→Magnet吸引→レベルアップイベント
+- 背景タイルまたはチェック柄、足元HPバー
 
 ---
 
