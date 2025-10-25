@@ -17,11 +17,13 @@ namespace Game.Enemies
             body = GetComponent<Rigidbody2D>();
             body.gravityScale = 0f;
             body.constraints = RigidbodyConstraints2D.FreezeRotation;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
         }
 
         private void Awake()
         {
             if (body == null) body = GetComponent<Rigidbody2D>();
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
         }
 
         private void FixedUpdate()

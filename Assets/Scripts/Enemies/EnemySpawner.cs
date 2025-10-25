@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Game.Combat;
+using Game.Core;
+using Game.Art;
 
 namespace Game.Enemies
 {
@@ -62,7 +65,7 @@ namespace Game.Enemies
             var pos = target.position + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * spawnRadius;
 
             var go = new GameObject("Enemy");
-            go.layer = LayerMask.NameToLayer("Enemy");
+            go.layer = LayerUtil.Resolve("Enemy", LayerUtil.Resolve("Default"));
             go.transform.position = pos;
 
             var rb = go.AddComponent<Rigidbody2D>();
@@ -72,16 +75,50 @@ namespace Game.Enemies
             // Simple visual
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sortingOrder = 5;
-            sr.sprite = GetDefaultSprite();
-            sr.color = enemyColor;
+            var set = SpriteProvider.GetSet();
+            if (set != null)
+            {
+                var enemySprite = set.enemySprite;
+                if (set.playerSprite != null && enemySprite == set.playerSprite && set.enemyAltSprite != null)
+                {
+                    enemySprite = set.enemyAltSprite;
+                }
+                if (enemySprite != null)
+                {
+                    sr.sprite = enemySprite;
+                    sr.color = Color.white;
+                }
+                else
+                {
+                    sr.sprite = GetDefaultSprite();
+                    sr.color = enemyColor;
+                }
+            }
+            else
+            {
+                sr.sprite = GetDefaultSprite();
+                sr.color = enemyColor;
+            }
 
             var ctrl = go.AddComponent<EnemyController2D>();
             ctrl.SetTarget(target);
 
-            // Collider for将来の接触
+            // Collider + Combat
             var col = go.AddComponent<CircleCollider2D>();
             col.isTrigger = true;
             col.radius = 0.3f;
+
+            var health = go.AddComponent<Health>();
+            health.SetMax(30f, true);
+            go.AddComponent<Damageable>();
+
+            var contactDamage = go.AddComponent<DamageSource>();
+            contactDamage.Amount = 5f;
+            contactDamage.CooldownSeconds = 0.5f;
+            contactDamage.DamageLayers = LayerUtil.MaskFor("Player", LayerUtil.Resolve("Default"));
+
+            // 経験値ドロップ
+            go.AddComponent<EnemyDropOnDeath>();
 
             return go;
         }

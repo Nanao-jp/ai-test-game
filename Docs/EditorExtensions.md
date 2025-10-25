@@ -5,7 +5,7 @@
 ---
 
 ## メニューの場所
-- Unity メニュー: `Tools > Project Setup`
+- Unity メニュー: `Tools > Project Setup` / `Tools > Art`
 
 ## 現在の拡張
 
@@ -51,13 +51,18 @@
 ---
 
 ## スクリプト一覧（主要）
-- `Assets/Editor/ProjectSetup/ApplyStandardSettings.cs`: すべてのメニュー定義
+- `Assets/Editor/ProjectSetup/ApplyStandardSettings.cs`: Project Setup系
+- `Assets/Editor/ProjectSetup/ArtSetupWindow.cs`: Art Setup Panel（SpriteSet編集）
+- `Assets/Editor/ProjectSetup/ApplyTinySwordsSprites.cs`: Tiny Swords取り込み/自動選定/Assign系
+- `Assets/Editor/ProjectSetup/VisualInspector.cs`: Player表示の検証/強制適用
 - `Assets/Scripts/Core/Bootstrap/Bootstrap.cs`: 起動時に `Application.targetFrameRate` を設定
 - `Assets/Scripts/Core/Camera/CameraFollow2D.cs`: カメラ追従
 - `Assets/Scripts/Core/Visual/ProceduralGridBackground.cs`: 背景生成
 - `Assets/Scripts/Player/PlayerController2D.cs`: プレイヤー移動（Input System）
 - `Assets/Scripts/Enemies/EnemyController2D.cs`: 敵追尾
 - `Assets/Scripts/Enemies/EnemySpawner.cs`: スポーン制御
+ - `Assets/Scripts/Combat/MeleeWeapon.cs`: 近接（扇形ヒット/VFX）
+ - `Assets/Scripts/Combat/SlashVfx.cs`: 斬撃VFXの生成（SpriteSetに連動）
 
 ---
 

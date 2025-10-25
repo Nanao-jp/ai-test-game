@@ -1,4 +1,5 @@
 using UnityEngine;
+using Game.Art;
 
 namespace Core.Visual
 {
@@ -17,6 +18,7 @@ namespace Core.Visual
         [SerializeField] private int sortingOrder = -100;
 
         private SpriteRenderer spriteRenderer = null!;
+        [SerializeField] private bool useSpriteSetBackground = true;
 
         private void Reset()
         {
@@ -33,7 +35,18 @@ namespace Core.Visual
         public void Generate()
         {
             if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
-
+            if (useSpriteSetBackground)
+            {
+                var set = SpriteProvider.GetSet();
+                if (set != null && set.backgroundSprite != null)
+                {
+                    spriteRenderer.sprite = set.backgroundSprite;
+                    spriteRenderer.drawMode = SpriteDrawMode.Tiled;
+                    spriteRenderer.size = worldSize;
+                    spriteRenderer.sortingOrder = sortingOrder;
+                    return;
+                }
+            }
             var tex = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
             {
                 filterMode = FilterMode.Point,
