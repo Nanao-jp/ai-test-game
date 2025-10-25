@@ -1,0 +1,4 @@
+repository "ai-test-game02/ai-test-game02@15669626349788@cloud"
+  path "/"
+    br "/main"
+    co "/main"

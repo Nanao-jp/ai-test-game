@@ -1,0 +1,56 @@
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Asset Store tools
+[Aa]ssets/AssetStoreTools*
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+*.obj
+*.unityproj
+.idea/
+*.DotSettings.user
+
+# Auto-generated
+[Aa]ssets/AddressableAssetsData/*/*.bin*
+Library/
+Logs/
+Temp/
+Obj/
+
+# Crashlytics
+crashlytics-build.properties
+
+# Cache
+[Aa]ssets/**/StreamingAssets/aa/*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Unity AI/Generators cache (if present)
+AiGeneratorsCache/
+
+
+.plastic/
+
