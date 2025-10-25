@@ -175,4 +175,66 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 - サバイバーズ系設計の要点: 敵密度曲線、経験値獲得速度、成長の“手応え”
 - 失敗例の回避: 敵の視認性低下、経験値回収の面倒さ、選択肢の形骸化
 
+---
+
+## ドキュメント
+- 制作チェックリスト（目的と意味）: `Docs/Development_Checklist.md`
+- 設定スナップショット: `Docs/Settings_Snapshots.md`
+ - エディタ拡張一覧: `Docs/EditorExtensions.md`
+
+---
+
+## 開発スタイル（重要）: エディタ拡張 × AI自動化
+- **方針**: “エディタ拡張（Editor Scripting）による自動化”を開発の主軸にし、AIで雛形/差分/ドキュメントを量産→ツール化→再現性確保。
+- **一般用語**: Tooling / Automation / Scaffolding / Configuration as Code
+- **メリット**:
+  - 冪等なセットアップ（ワンクリックで同じ状態を再現）
+  - 属人性の低減（設定や手順をコード化）
+  - 横展開の高速化（新メンバー/新PCですぐ同じ開発状態）
+- **適用範囲**: プロジェクト設定、シーン初期化、プレハブ雛形、レベル生成、アセット導入、ビルド設定、ドキュメント出力
+- 使い方や現在の実装は `Docs/EditorExtensions.md` を参照
+
+---
+
+## AI実装プロンプト（次のステップ）
+以下のプロンプトをAIに与えて実装を生成→最小修正→ツール化の流れで進めます。
+
+### A) 被ダメ/HP/接触ダメージ
+システム要件:
+- Player/Enemy双方に`Health`（current/max, 死亡イベント）
+- `DamageSource`（amount, type, interval）と`Damageable`（OnDamage受理）
+- 接触ダメージ: `Enemy`の`CircleCollider2D(isTrigger)`が`Player`に触れたら`DamageSource`を適用（連続当たりはクールダウン）
+- 死亡時: `Enemy`はDestroy、`Player`はゲームオーバーイベントを発火
+- イベントはC# Actionで発行し、UIやドロップに疎結合連携
+
+アウトプット期待（コード構成と命名）:
+- `Assets/Scripts/Combat/Health.cs`（MonoBehaviour, `TakeDamage`, `Heal`, `OnDied`）
+- `Assets/Scripts/Combat/DamageSource.cs`（接触/弾の両対応, `cooldownSeconds`）
+- `Assets/Scripts/Combat/Damageable.cs`（`OnTriggerEnter2D`/`OnCollisionEnter2D`→`Health.TakeDamage`）
+- `Assets/Scripts/Systems/GameEvents.cs`（`Action OnPlayerDied` 等）
+- 既存`EnemyController2D`に`DamageSource`付与、`Player`に`Health`+`Damageable`付与
+
+テスト観点:
+- 1体の敵に触れると一定間隔でHPが減る
+- HPが0で死亡イベントが一度だけ発火
+- 連続接触時のダメージが意図の間隔になる
+
+### B) 経験値ドロップ→回収→レベルアップ通知
+システム要件:
+- `ExpPickup`（`Rigidbody2D`+`CircleCollider2D(isTrigger)`）を敵死亡時にスポーン
+- `MagnetRange`を持つ`Player`に吸引（一定速度で追従）
+- `ExperienceSystem`が累積EXPを管理し、しきい値到達でレベルアップ→`Action<int> OnLevelUp(level)`
+- しきい値は配列または式で指定（例: 5, 12, 22, 36, ...）
+
+アウトプット期待:
+- `Assets/Scripts/Systems/Experience/ExperienceSystem.cs`
+- `Assets/Scripts/Systems/Experience/ExpPickup.cs`
+- `Assets/Scripts/Player/Magnet.cs`（半径と吸引速度）
+- 敵死亡→`ExpPickup`生成→回収→レベルアップイベント
+
+テスト観点:
+- 3〜5個の`ExpPickup`でレベルアップが発生
+- 距離外では吸引されず、半径内で追従する
+- レベルアップイベントがUIに通知できる
+
 
