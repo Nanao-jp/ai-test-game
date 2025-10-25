@@ -1,17 +1,16 @@
-## ai-test-game02 — 2D サバイバーズ系（全方位アクション）
+## ai-test-game02 — 縦スクロールシューティング（Shooter Template）
 
-このリポジトリは、制作工程でAIを最大活用して短期間で“形と量”を出すことを目的とした2Dサバイバーズ系ゲームのプロトタイプです。ゲーム内でNPC対話AIは用いず、コーディング、ディレクトリ構成、UI/アート/サウンド素材、ドキュメント整備、ローカライズなど制作フローにAIをフル活用します。
+このリポジトリは「縦スクロールSTG」のテンプレートです。エディタ拡張は最小構成で、1クリックのセットアップと、再生ごとのログ収集を備えています。前バージョン（サバイバー系）の情報は削除し、現構成のみ記載しています。
 
 ### 目的（ゴール）
-- 最短で遊べるループ（10分1ラン）を構築し、継続的にコンテンツを増やせる基盤を作る
-- “AIで制作速度とバリエーションが増した”ことが分かる成果物（動画/スクリーンショット/数字）を示す
-- 将来の拡張（武器/敵/マップ/メタ成長）に耐えるデータ駆動設計を確立
+- 1クリックで縦スクロールSTGの検証シーンを生成・起動
+- Space Shooterアセットに自動対応（見た目/弾/爆発の自動配線）
+- 9:16の縦長表示を強制し、ログを毎回 `Logs/latest.log` に出力
 
 ### コア体験（最小仕様）
-- プレイヤーは移動のみ操作、攻撃は自動（オート射撃/周期発動）
-- ウェーブ制エンカウントの生存型ループ（例: 10分でクリア）
-- レベルアップ時にランダム3択から武器/パッシブを獲得
-- ステージ終了時に統計とビルド履歴を表示
+- 縦スクロール（自動スクロール）
+- プレイヤーは移動操作、射撃はオート（固定上方向）
+- シンプルな敵スポーン（画面上端の外から流入）
 
 ### スコープ（初期スプリント）
 - ステージ: 1種（固定タイル背景）
@@ -36,7 +35,7 @@
 
 ---
 
-## ディレクトリ方針（今後作成）
+## ディレクトリ方針（要点）
 ```
 Assets/
   Scripts/
@@ -65,10 +64,10 @@ Assets/
 
 ---
 
-## データ駆動設計
-- `ScriptableObject`で武器/敵/パッシブ/ウェーブを定義
-- パラメータは`min/max/成長式`を持ち、レベルに応じて補間/段階増分
-- 戦闘はイベント駆動（例: `OnEnemyKilled`, `OnLevelUp`）でUI/ドロップ等を疎結合化
+## 画面/入力/ログ
+- 表示: 9:16 縦長を `AspectEnforcerPortrait` で強制（ピラーボックス）
+- 入力: `Input System`（`Player` マップ）。イベント（OnMove）とポーリング双方に対応
+- ログ: `Logs/latest.log` に毎回書き出し（`ConsoleLogRecorder`）
 
 ---
 
@@ -99,12 +98,10 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 
 ---
 
-## ワークフロー
-1. 仕様ドラフト（Notion/READMEの該当章に追記）
-2. タスク分解 → 1〜3日単位でPR駆動
-3. AIで雛形/アセット生成 → 手動で最小検証（再現/パフォーマンス/視認性）
-4. メトリクス計測（敵撃破数、被弾、DPS、生存時間）→ AIに調整提案依頼
-5. 週次で動画化/スクショ化して進捗公開
+## ワークフロー（エディタ）
+1. `Tools > Shooter > Setup (Reset & Apply Assets)` を実行
+2. `Play` で動作確認（操作不可時は `Logs/latest.log` を確認）
+3. 見た目を変えたい場合は Space Shooter のプレハブを追加して再度 Setup を実行
 
 コミット規約（例）
 - `feat: 武器「ブーメラン」実装`
@@ -113,33 +110,30 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 
 ---
 
-## マイルストーン（例：最初の2週間）
-- Day 1-2: 入力/移動/敵スポーン/被ダメ/ゲームオーバー
-- Day 3-4: 武器2種+レベルアップUI（3択）
-- Day 5-6: 敵4種/ウェーブ設定/ドロップ（経験値/回復）
-- Day 7-8: UI/演出磨き（ヒット/被弾/レベルアップ）
-- Day 9-10: アート/アイコン/SFXをAIで量産→選別→適用
-- Day 11-12: バランス初版→テレメトリ→AI提案で調整
-- Day 13-14: ビルド/ストア素材/短尺動画
+## 主要コンポーネント
+- `ShooterSetup`（唯一のセットアップメニュー）
+- `AutoScrollSystem`（縦スクロール）
+- `FormationSpawner`（上端スポーン）
+- `PlayerController2D`（移動/射撃、InputActions＋ポーリング）
+- `AspectEnforcerPortrait`（9:16固定）
+- `ConsoleLogRecorder`（ログ収集）
 
 ---
 
-## ビルド/実行
-- 既定シーン: `Assets/Scenes/SampleScene.unity`（初期は検証用）
-- 解像度: 1920x1080（可変）、ターゲット: Windows PC
-- 入力: WASD/左スティックで移動。最後に押した方向にオート射撃/近接スイング
+## 実行
+- 既定シーン: `Assets/Scenes/Stage_VerticalShoot.unity`
+- 表示: 9:16縦長（ピラーボックス）
+- 入力: WASD/矢印/ゲームパッド左スティック。射撃は自動（上方向）
 
 ### Quickstart（見た目の適用）
-1. `Tools > Art > Setup Panel` を開く
-2. `Player/Enemy/Bullet/Exp/Background` と `Slash VFX Sprite/Prefab` を割当 → `Save SpriteSet`
-3. 必要なら `Apply Tiny Swords (Quick)` で自動選定 → `Force Apply Player Sprite Now` で即反映
-4. `Inspect Player Visual` で状態確認
+1. `Tools > Shooter > Setup (Reset & Apply Assets)` を実行
+2. Space Shooter の `Player.prefab` / `Player_Short_Lazer.prefab` / `Backgrounds.prefab` があれば自動適用
+3. Play
 
-### 現状の実装（2025-10-25）
-- オート射撃（弾）: 最後の入力方向へ発射
-- 近接攻撃（剣）: 扇形ヒット/前方オフセット/直交スイング、斬撃VFX差し替え対応
-- EXPドロップ→Magnet吸引→レベルアップイベント
-- 背景タイルまたはチェック柄、足元HPバー
+### 現状（2025-10-26）
+- 9:16縦長、縦スクロール、上方向オート射撃
+- Space Shooterアセットの機体/弾/背景に自動対応
+- Playごとに `Logs/latest.log` を生成
 
 ---
 
@@ -169,7 +163,7 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 ### QA
 - PCでコアループ/バランス/密度を検証→週1で実機ビルド（入力/UI視認性/発熱）を確認
 
-## 品質ゲート（Doneの定義）
+## 品質ゲート（目安）
 - 60 FPS維持（ターゲットPCで）
 - 可読性基準: メソッド < 60行、早期return、例外の乱用禁止
 - プレイ計測: 5本の10分ランで致命的不具合なし
@@ -183,9 +177,10 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 
 ---
 
-## 参考
-- サバイバーズ系設計の要点: 敵密度曲線、経験値獲得速度、成長の“手応え”
-- 失敗例の回避: 敵の視認性低下、経験値回収の面倒さ、選択肢の形骸化
+## トラブルシュート（よくある）
+- 操作できない: `Logs/latest.log` の先頭に `[PlayerInput] present=True ...` が無い → PlayerInputが無効。`Setup` を再実行
+- 横長に戻る: `AspectEnforcerPortrait` が外れている → `Setup` を再実行
+- HPが減り続ける: スポーンが近すぎる → `FormationSpawner.spawnYOffset` を上げる（14〜16）
 
 ---
 
@@ -208,45 +203,34 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 
 ---
 
-## AI実装プロンプト（次のステップ）
-以下のプロンプトをAIに与えて実装を生成→最小修正→ツール化の流れで進めます。
+## 実装目標（短期）
+- 入力の確実化: `PlayerInput` の自動付与・`defaultActionMap=Player` 強制・Action購読＋ポーリングの二重化で「常に動く」状態にする
+- HPバー追従の安定化: 機体Prefab（`Visual`）のバウンズ上端に自動追従（ズレ最小）
+- 敵/爆発の見た目統一: Space Shooterの `Enemy Explosion` を標準爆発として全敵に付与
+- 背景の拡張: パララックス層（惑星/星屑レイヤ）追加の雛形
+- 弾のプール: `Player` 弾を簡易プーリングへ置換（GC削減）
+- HUD最小版: スコア/残機/ボムのラベル表示
 
-### A) 被ダメ/HP/接触ダメージ
-システム要件:
-- Player/Enemy双方に`Health`（current/max, 死亡イベント）
-- `DamageSource`（amount, type, interval）と`Damageable`（OnDamage受理）
-- 接触ダメージ: `Enemy`の`CircleCollider2D(isTrigger)`が`Player`に触れたら`DamageSource`を適用（連続当たりはクールダウン）
-- 死亡時: `Enemy`はDestroy、`Player`はゲームオーバーイベントを発火
-- イベントはC# Actionで発行し、UIやドロップに疎結合連携
+## 既知の問題（2025-10-26）
+- 操作不可（入力0）
+  - 事象: `Logs/latest.log` 先頭に `[PlayerInput] present=False` が出る／`[Action] Move=...` が出ない
+  - 現状: Setupで `PlayerInput` 付与とMap固定を行うが、再現個体で未付与のケースあり
+  - 暫定: `PlayerController2D` がAction購読＋WASD/矢印/ゲームパッドのポーリングを実施（ログに `[OnMove]`/`[Action]`/`[PollInput]` を出力）
+  - 次対応: Setup時に`PlayerInput`の存在を検証→なければ強制追加、実行後に`Logs/latest.log`へ確定行を記録
 
-アウトプット期待（コード構成と命名）:
-- `Assets/Scripts/Combat/Health.cs`（MonoBehaviour, `TakeDamage`, `Heal`, `OnDied`）
-- `Assets/Scripts/Combat/DamageSource.cs`（接触/弾の両対応, `cooldownSeconds`）
-- `Assets/Scripts/Combat/Damageable.cs`（`OnTriggerEnter2D`/`OnCollisionEnter2D`→`Health.TakeDamage`）
-- `Assets/Scripts/Systems/GameEvents.cs`（`Action OnPlayerDied` 等）
-- 既存`EnemyController2D`に`DamageSource`付与、`Player`に`Health`+`Damageable`付与
+- HPが自然減する
+  - 事象: 画面に敵が居ない状態でもHPが減少
+  - 可能性: 画面外スポーンとの接触/古いコライダの残骸/レイヤ誤設定
+  - 暫定: 敵は `DamageSource(DamageLayers=Player)`、弾は `Enemy` のみ。`spawnYOffset` を 14 に設定
+  - 次対応: 一時的に接触ダメージをオフにできるデバッグフラグを追加し、原因層を切り分け
 
-テスト観点:
-- 1体の敵に触れると一定間隔でHPが減る
-- HPが0で死亡イベントが一度だけ発火
-- 連続接触時のダメージが意図の間隔になる
+- 表示が横長に戻ることがある
+  - 対応済: `AspectEnforcerPortrait` で9:16を強制（ピラーボックス）。Setupが自動付与
 
-### B) 経験値ドロップ→回収→レベルアップ通知
-システム要件:
-- `ExpPickup`（`Rigidbody2D`+`CircleCollider2D(isTrigger)`）を敵死亡時にスポーン
-- `MagnetRange`を持つ`Player`に吸引（一定速度で追従）
-- `ExperienceSystem`が累積EXPを管理し、しきい値到達でレベルアップ→`Action<int> OnLevelUp(level)`
-- しきい値は配列または式で指定（例: 5, 12, 22, 36, ...）
-
-アウトプット期待:
-- `Assets/Scripts/Systems/Experience/ExperienceSystem.cs`
-- `Assets/Scripts/Systems/Experience/ExpPickup.cs`
-- `Assets/Scripts/Player/Magnet.cs`（半径と吸引速度）
-- 敵死亡→`ExpPickup`生成→回収→レベルアップイベント
-
-テスト観点:
-- 3〜5個の`ExpPickup`でレベルアップが発生
-- 距離外では吸引されず、半径内で追従する
-- レベルアップイベントがUIに通知できる
+## ログの見方（抜粋）
+- 起動直後の1行: `[PlayerInput] present=... actions=... map=... behavior=...`
+  - present=True, map=Player であることを確認
+- 入力検知: `[OnMove] value=...` / `[Action] Move=...` / `[PollInput] used value=...`
+- ファイル: プロジェクト直下 `Logs/latest.log`（Playごとにリセット）
 
 

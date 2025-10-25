@@ -8,7 +8,7 @@ namespace Core.Visual
     public sealed class ProceduralGridBackground : MonoBehaviour
     {
         [Header("World Size (units)")]
-        [SerializeField] private Vector2 worldSize = new Vector2(60f, 60f);
+        [SerializeField] private Vector2 worldSize = new Vector2(10f, 30f); // 縦長想定の初期値
 
         [Header("Grid")]
         [SerializeField] private int textureSize = 128;              // generated texture px
@@ -19,6 +19,10 @@ namespace Core.Visual
 
         private SpriteRenderer spriteRenderer = null!;
         [SerializeField] private bool useSpriteSetBackground = true;
+        [Header("UV Scroll")]
+        [SerializeField] private bool enableUvScroll = false;
+        [SerializeField] private float uvScrollSpeedY = 0f; // 単位: テクスチャ座標/秒（+は上方向に流れにくい見た目、-で下方向）
+        private Material _mat;
 
         private void Reset()
         {
@@ -30,6 +34,7 @@ namespace Core.Visual
         {
             if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
             if (spriteRenderer.sprite == null) Generate();
+            EnsureMaterial();
         }
 
         public void Generate()
@@ -44,6 +49,7 @@ namespace Core.Visual
                     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
                     spriteRenderer.size = worldSize;
                     spriteRenderer.sortingOrder = sortingOrder;
+                    EnsureMaterial();
                     return;
                 }
             }
@@ -76,6 +82,7 @@ namespace Core.Visual
             spriteRenderer.drawMode = SpriteDrawMode.Tiled;
             spriteRenderer.size = worldSize;
             spriteRenderer.sortingOrder = sortingOrder;
+            EnsureMaterial();
         }
 
         public void SetWorldSize(Vector2 size)
@@ -83,6 +90,31 @@ namespace Core.Visual
             worldSize = size;
             if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
             spriteRenderer.size = worldSize;
+        }
+
+        private void EnsureMaterial()
+        {
+            if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer == null) return;
+            if (_mat == null)
+            {
+                _mat = spriteRenderer.sharedMaterial;
+                if (_mat == null)
+                {
+                    _mat = new Material(Shader.Find("Sprites/Default"));
+                    spriteRenderer.sharedMaterial = _mat;
+                }
+            }
+        }
+
+        private void Update()
+        {
+            if (!enableUvScroll || Mathf.Approximately(uvScrollSpeedY, 0f)) return;
+            if (_mat == null) EnsureMaterial();
+            if (_mat == null) return;
+            var off = _mat.mainTextureOffset;
+            off.y += uvScrollSpeedY * Time.deltaTime;
+            _mat.mainTextureOffset = off;
         }
     }
 }

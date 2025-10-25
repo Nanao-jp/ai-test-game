@@ -15,12 +15,8 @@ namespace Game.Art
         public static SpriteSet GetSet()
         {
             if (_cached != null && HasAnySprite(_cached)) return _cached;
-            var set = Resources.Load<SpriteSet>("Art/SpriteSet_TinySwords");
-            if (set == null || !HasAnySprite(set))
-            {
-                var all = Resources.LoadAll<SpriteSet>(string.Empty);
-                set = all != null && all.Length > 0 ? all[0] : null;
-            }
+            // 旧アセットは参照しない。強制的にnullを返し、デフォルト外観にフォールバックさせる。
+            SpriteSet set = null;
             _cached = set;
             return _cached;
         }

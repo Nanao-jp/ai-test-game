@@ -115,6 +115,7 @@ namespace Game.Enemies
             var contactDamage = go.AddComponent<DamageSource>();
             contactDamage.Amount = 5f;
             contactDamage.CooldownSeconds = 0.5f;
+            // 敵→プレイヤーのみ
             contactDamage.DamageLayers = LayerUtil.MaskFor("Player", LayerUtil.Resolve("Default"));
 
             // 経験値ドロップ

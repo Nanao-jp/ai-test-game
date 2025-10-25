@@ -8,7 +8,7 @@ namespace Game.UI
     {
         [SerializeField] private Health _playerHealth = null!;
         [SerializeField] private Vector2 _size = new Vector2(1.8f, 0.18f);
-        [SerializeField] private float _offsetY = -0.6f; // プレイヤーの少し下
+        [SerializeField] private float _offsetY = 0.8f; // 機体の少し上（縦STG向け）
         [SerializeField] private Color _bgColor = new Color(0f, 0f, 0f, 0.6f);
         [SerializeField] private Color _fillColor = new Color(0.2f, 0.9f, 0.2f, 0.95f);
         [SerializeField] private int _sortingOrder = 50;
@@ -16,6 +16,7 @@ namespace Game.UI
         private Transform _barRoot;
         private SpriteRenderer _bg;
         private SpriteRenderer _fill;
+        private Transform _followTarget; // Visualがあればそれを優先
 
         public static void AttachTo(GameObject player, Health health)
         {
@@ -23,6 +24,8 @@ namespace Game.UI
             if (existing != null)
             {
                 existing._playerHealth = health;
+                existing.SetFollowTarget(FindFollowTarget(player.transform));
+                existing.TryComputeOffsetFromBounds();
                 return;
             }
 
@@ -30,6 +33,8 @@ namespace Game.UI
             go.transform.SetParent(player.transform, false);
             var bar = go.AddComponent<PlayerHealthWorldBar>();
             bar._playerHealth = health;
+            bar.SetFollowTarget(FindFollowTarget(player.transform));
+            bar.TryComputeOffsetFromBounds();
         }
 
         private void OnEnable()
@@ -64,7 +69,16 @@ namespace Game.UI
             SetRatio(ratio);
             if (_barRoot != null)
             {
-                _barRoot.localPosition = new Vector3(0f, _offsetY, 0f);
+                var target = _followTarget != null ? _followTarget : transform.parent;
+                if (target != null)
+                {
+                    // ワールド座標で追従
+                    _barRoot.position = target.position + new Vector3(0f, _offsetY, 0f);
+                }
+                else
+                {
+                    _barRoot.localPosition = new Vector3(0f, _offsetY, 0f);
+                }
             }
         }
 
@@ -122,6 +136,34 @@ namespace Game.UI
                 _fill.transform.localScale = new Vector3(_size.x / fBaseW, _size.y / fBaseH, 1f);
             }
             _fill.transform.localPosition = new Vector3(0f, 0f, 0f);
+        }
+
+        private void SetFollowTarget(Transform t)
+        {
+            _followTarget = t;
+        }
+
+        private void TryComputeOffsetFromBounds()
+        {
+            var t = _followTarget != null ? _followTarget : transform.parent;
+            if (t == null) return;
+            var r = t.GetComponentInChildren<Renderer>();
+            if (r == null) return;
+            // バウンズ上端から少し上
+            var height = r.bounds.size.y;
+            if (height > 0f)
+            {
+                _offsetY = (r.bounds.center.y - t.position.y) + (height * 0.6f);
+            }
+        }
+
+        private static Transform FindFollowTarget(Transform player)
+        {
+            var visual = player.Find("Visual");
+            if (visual != null) return visual;
+            var visualSprite = player.Find("VisualSprite");
+            if (visualSprite != null) return visualSprite;
+            return player;
         }
 
         private static Sprite s_White;
