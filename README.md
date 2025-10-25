@@ -131,6 +131,32 @@ AIは“提案→出力→検証→採用”のループで使う。ゲーム内
 
 ---
 
+## モバイル対応（PCテスト前提）
+- 結論: 本プロジェクトはiOS/Androidビルドに対応可能。日常のプレイテストはPCで実施し、必要時にモバイル用ビルドを生成します。
+
+### 入力切替
+- Input Systemの`Control Scheme`で `Keyboard&Mouse` / `Gamepad` / `Touch` を用意
+- タッチ操作は仮想スティック（左移動）+ オート攻撃維持（追加ボタン不要）
+
+### 解像度/アスペクト
+- 9:16（1080x1920）基準で安全域を設定。UGUIの`Canvas Scaler`を`Scale With Screen Size`に設定
+- 16:9向けはPCでUI配置、モバイルでは縦長に最適化したHUDレイアウトを別Canvasで差し替え
+
+### パフォーマンス
+- URPのクオリティ設定を`Mobile`（影オフ/ポスト最小）に分岐
+- スプライトアトラス化、ドローコールを抑制、Updateの分割（固定更新/可変更新）
+
+### ビルド設定メモ
+- Android: `Project Settings > Player > Other Settings` → `IL2CPP`、`ARM64`、`Target API Level`は最新推奨
+- iOS: `IL2CPP`、`Scripting Backend`一貫。Xcodeから署名/ビルド
+
+### 操作方針の差分
+- PC: WASD/左スティック移動、マウス不要
+- モバイル: 仮想スティック/スワイプ移動、攻撃は自動（ボタン負荷を避ける）
+
+### QA
+- PCでコアループ/バランス/密度を検証→週1で実機ビルド（入力/UI視認性/発熱）を確認
+
 ## 品質ゲート（Doneの定義）
 - 60 FPS維持（ターゲットPCで）
 - 可読性基準: メソッド < 60行、早期return、例外の乱用禁止
