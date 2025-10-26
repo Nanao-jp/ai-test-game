@@ -1,15 +1,16 @@
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.SceneManagement;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
+using System.IO;
+using System.Text;
 
 namespace ProjectSetup
 {
     public static class ShooterSetup
     {
-        [MenuItem("Tools/Shooter/Setup (Reset & Apply Assets)", priority = 0)]
+        private const string DEMO_SCENE_PATH = "Assets/Space Shooter Template FREE/Scenes/Demo_Scene.unity";
+
+        [MenuItem("Tools/Shooter/Setup (Space Shooter Preset)", priority = 0)]
         public static void Setup()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -18,133 +19,231 @@ namespace ProjectSetup
                 return;
             }
 
-            // New clean scene
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-
-            // Camera
-            var cam = Camera.main;
-            if (cam == null)
+            // Demo_Sceneを開く
+            var asset = AssetDatabase.LoadAssetAtPath<SceneAsset>(DEMO_SCENE_PATH);
+            if (asset == null)
             {
-                var camGo = new GameObject("Main Camera");
-                cam = camGo.AddComponent<Camera>();
-                cam.tag = "MainCamera";
-                cam.transform.position = new Vector3(0, 0, -10);
+                Debug.LogError($"Space Shooter Template FREEのデモシーンが見つかりません: {DEMO_SCENE_PATH}");
+                return;
             }
-            cam.orthographic = true;
-            cam.orthographicSize = 6f;
+
+            // Demo_Sceneをスタートシーンに設定
+            EditorSceneManager.playModeStartScene = asset;
+            EnsureBuildSettingsOnly(DEMO_SCENE_PATH);
+            EditorSceneManager.OpenScene(DEMO_SCENE_PATH, OpenSceneMode.Single);
+
+            // アスペクト比強制をカメラに追加（任意）
+            var cam = Camera.main;
+            if (cam != null)
+            {
             if (cam.GetComponent<Core.Camera2D.AspectEnforcerPortrait>() == null)
             {
                 cam.gameObject.AddComponent<Core.Camera2D.AspectEnforcerPortrait>();
-            }
-
-            // Bootstrap & Overlay
-            var boot = new GameObject("Bootstrap");
-            boot.AddComponent<Core.Bootstrap.Bootstrap>();
-            if (boot.GetComponent<Game.Core.Debugging.RuntimeDebugOverlay>() == null)
-            {
-                boot.AddComponent<Game.Core.Debugging.RuntimeDebugOverlay>();
-            }
-            // ConsoleLogRecorder は静的初期化で動くが、明示的に型参照してロードを確実化
-            System.Type.GetType("Game.Core.Debugging.ConsoleLogRecorder, Assembly-CSharp");
-
-            // Background
-            var bg = new GameObject("Background");
-            var grid = bg.AddComponent<Core.Visual.ProceduralGridBackground>();
-            grid.Generate();
-            var bgPrefab = FindAsset<GameObject>("Assets/Space Shooter Template FREE/Prefabs/Background/Backgrounds.prefab");
-            if (bgPrefab == null) bgPrefab = FindAsset<GameObject>("Backgrounds 1.prefab");
-            if (bgPrefab != null)
-            {
-                var inst = Object.Instantiate(bgPrefab, bg.transform);
-                inst.name = inst.name.Replace("(Clone)", "");
-            }
-
-            // Systems
-            var systems = new GameObject("ShooterSystems");
-            var scroll = systems.AddComponent<Game.Shooter.AutoScrollSystem>();
-            scroll.SetAffectCamera(true);
-
-            // Player
-            var player = new GameObject("Player");
-            var rb = player.AddComponent<Rigidbody2D>();
-            rb.gravityScale = 0f; rb.constraints = RigidbodyConstraints2D.FreezeRotation;
-            var pc = player.AddComponent<Game.Player.PlayerController2D>();
-            var soPc = new SerializedObject(pc);
-            soPc.FindProperty("shooterMode").boolValue = true;
-            soPc.FindProperty("fixedShootDirection").vector2Value = Vector2.up;
-            // Apply Space Shooter assets if found
-            var ship = FindAsset<GameObject>("Assets/Space Shooter Template FREE/Prefabs/Player.prefab");
-            var bullet = FindAsset<GameObject>("Assets/Space Shooter Template FREE/Prefabs/Projectiles/Player_Short_Lazer.prefab");
-            if (ship != null) soPc.FindProperty("shipVisualPrefab").objectReferenceValue = ship;
-            if (bullet != null) soPc.FindProperty("bulletPrefab").objectReferenceValue = bullet;
-            soPc.ApplyModifiedPropertiesWithoutUndo();
-
-#if ENABLE_INPUT_SYSTEM
-            var pi = player.GetComponent<PlayerInput>();
-            if (pi == null) pi = player.AddComponent<PlayerInput>();
-            var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
-            if (actions != null)
-            {
-                pi.actions = actions;
-                // map強制とイベント/ポーリング両対応
-                pi.defaultActionMap = "Player";
-                pi.notificationBehavior = PlayerNotifications.SendMessages;
-            }
-#endif
-            player.transform.position = new Vector3(0, -4f, 0);
-
-            // Spawner
-            var spawner = new GameObject("FormationSpawner");
-            spawner.AddComponent<Game.Shooter.FormationSpawner>();
-            var soSp = new SerializedObject(spawner.GetComponent<Game.Shooter.FormationSpawner>());
-            soSp.FindProperty("spawnYOffset").floatValue = 14f;
-            soSp.ApplyModifiedPropertiesWithoutUndo();
-
-            // Save & set as start scene
-            var path = "Assets/Scenes/Stage_VerticalShoot.unity";
-            EditorSceneManager.SaveScene(scene, path);
-            var asset = AssetDatabase.LoadAssetAtPath<SceneAsset>(path);
-            if (asset != null) EditorSceneManager.playModeStartScene = asset;
-            EnsureBuildSettingsOnly(path);
-            EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
-
-            Debug.Log("Shooter setup complete: clean scene, assets applied, start scene set.");
-        }
-
-        // ショートカットは残すが、メニューは最小限
-        [MenuItem("Tools/Shooter/Open Shooter Scene", priority = 50)]
-        public static void OpenScene()
-        {
-            const string path = "Assets/Scenes/Stage_VerticalShoot.unity";
-            var asset = AssetDatabase.LoadAssetAtPath<SceneAsset>(path);
-            if (asset != null) EditorSceneManager.OpenScene(path);
-        }
-
-        // 旧拡張の掃除も統合
-        [MenuItem("Tools/Shooter/Setup + Cleanup", priority = 1)]
-        public static void SetupWithCleanup()
-        {
-            // 定義を付与して旧メニューをビルドから隠す
-            var group = EditorUserBuildSettings.selectedBuildTargetGroup;
-            var defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(group);
-            const string define = "HIDE_LEGACY_MENUS";
-            if (!defines.Contains(define))
-            {
-                defines = string.IsNullOrEmpty(defines) ? define : (defines + ";" + define);
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(group, defines);
-            }
-
-            // シーン内の旧要素を掃除
-            foreach (var go in Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
-            {
-                if (go == null) continue;
-                if (go.name.Contains("EnemySpawner") || go.name.Contains("Slash"))
-                {
-                    Object.DestroyImmediate(go);
+                    Debug.Log("AspectEnforcerPortrait を Main Camera に追加しました。");
                 }
             }
 
-            Setup();
+            // ログ機能の確実な初期化（静的初期化を強制）
+            System.Type.GetType("Game.Core.Debugging.ConsoleLogRecorder, Assembly-CSharp");
+
+            WriteSetupSummary();
+
+            Debug.Log($"Setup完了: Space Shooter Template FREEのプリセット（{DEMO_SCENE_PATH}）を開きました。");
+        }
+
+        [MenuItem("Tools/Shooter/Open Demo Scene", priority = 1)]
+        public static void OpenDemoScene()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<SceneAsset>(DEMO_SCENE_PATH);
+            if (asset != null)
+            {
+                EditorSceneManager.OpenScene(DEMO_SCENE_PATH, OpenSceneMode.Single);
+            }
+            else
+            {
+                Debug.LogError($"デモシーンが見つかりません: {DEMO_SCENE_PATH}");
+            }
+        }
+
+        [MenuItem("Tools/Shooter/Open Player Settings", priority = 2)]
+        public static void OpenPlayerSettings()
+        {
+            SettingsService.OpenProjectSettings("Project/Player");
+        }
+
+        [MenuItem("Tools/Shooter/Setup Sound Effects", priority = 10)]
+        public static void SetupSoundEffects()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogError("Playモード中は実行できません。停止してから実行してください。");
+                return;
+            }
+
+            // 音声クリップをロード
+            var deathSound = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Casual Game Sounds U6/CasualGameSounds/DM-CGS-09.wav");
+            var powerupSound = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Casual Game Sounds U6/CasualGameSounds/DM-CGS-07.wav");
+            var enemyDeathSound = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Casual Game Sounds U6/CasualGameSounds/DM-CGS-48.wav");
+
+            if (deathSound == null || powerupSound == null || enemyDeathSound == null)
+            {
+                Debug.LogError("音声ファイルが見つかりません。Casual Game Sounds U6がインポートされているか確認してください。");
+                return;
+            }
+
+            int playerCount = 0, bonusCount = 0, vfxCount = 0;
+
+            // シーン内の全オブジェクトに音声設定
+            foreach (var player in Object.FindObjectsByType<Player>(FindObjectsSortMode.None))
+            {
+                SetupPlayerSound(player.gameObject, deathSound);
+                playerCount++;
+            }
+
+            foreach (var bonus in Object.FindObjectsByType<Bonus>(FindObjectsSortMode.None))
+            {
+                SetupBonusSound(bonus.gameObject, powerupSound);
+                bonusCount++;
+            }
+
+            // 古いEnemySoundBridgeを削除（もう使わない）
+            RemoveOldEnemySoundBridges();
+            
+            // プレハブ設定
+            SetupPlayerPrefabSound("Assets/Space Shooter Template FREE/Prefabs/Player.prefab", deathSound);
+            SetupBonusPrefabs(powerupSound);
+            
+            // 爆発VFXに音を設定
+            vfxCount += SetupExplosionVFX(enemyDeathSound);
+
+            Debug.Log($"音声設定完了: Player={playerCount}個, Bonus={bonusCount}個, ExplosionVFX={vfxCount}個 + プレハブ");
+        }
+
+        private static void SetupPlayerSound(GameObject player, AudioClip deathSound)
+        {
+            // PlayerSoundBridge（射撃音は削除）
+            var playerBridge = player.GetComponent<Core.Audio.PlayerSoundBridge>();
+            if (playerBridge == null) playerBridge = player.AddComponent<Core.Audio.PlayerSoundBridge>();
+            var soPlayer = new SerializedObject(playerBridge);
+            soPlayer.FindProperty("_deathSound").objectReferenceValue = deathSound;
+            soPlayer.ApplyModifiedPropertiesWithoutUndo();
+
+            // ShootingSoundBridgeを削除（不要）
+            var shootBridge = player.GetComponent<Core.Audio.ShootingSoundBridge>();
+            if (shootBridge != null)
+            {
+                Object.DestroyImmediate(shootBridge, true);
+            }
+        }
+
+        private static void SetupBonusSound(GameObject bonus, AudioClip pickupSound)
+        {
+            var bridge = bonus.GetComponent<Core.Audio.BonusSoundBridge>();
+            if (bridge == null) bridge = bonus.AddComponent<Core.Audio.BonusSoundBridge>();
+            var so = new SerializedObject(bridge);
+            so.FindProperty("_pickupSound").objectReferenceValue = pickupSound;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetupPlayerPrefabSound(string prefabPath, AudioClip deathSound)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null) return;
+
+            var player = prefab.GetComponent<Player>();
+            if (player != null)
+            {
+                SetupPlayerSound(prefab, deathSound);
+                EditorUtility.SetDirty(prefab);
+                AssetDatabase.SaveAssets();
+            }
+        }
+
+        private static int SetupExplosionVFX(AudioClip explosionSound)
+        {
+            int count = 0;
+            
+            // 敵の爆発VFXプレハブを検索
+            var explosionPaths = new[]
+            {
+                "Assets/Space Shooter Template FREE/Prefabs/VFX/Enemy Explosion.prefab",
+                "Assets/Space Shooter Template FREE/Prefabs/VFX/Enemy Explosion PC.prefab",
+                "Assets/Space Shooter Template FREE/Prefabs/VFX/Enemy Explosion_02.prefab",
+                "Assets/Space Shooter Template FREE/Prefabs/VFX/Enemy Explosion_02_PC.prefab"
+            };
+
+            foreach (var path in explosionPaths)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null)
+                {
+                    // SoundEffectPlayerを追加
+                    var soundPlayer = prefab.GetComponent<Core.Audio.SoundEffectPlayer>();
+                    if (soundPlayer == null)
+                    {
+                        soundPlayer = prefab.AddComponent<Core.Audio.SoundEffectPlayer>();
+                    }
+                    
+                    var so = new SerializedObject(soundPlayer);
+                    so.FindProperty("_clip").objectReferenceValue = explosionSound;
+                    so.FindProperty("_playOnStart").boolValue = true;
+                    so.FindProperty("_playOnDestroy").boolValue = false;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                    
+                    EditorUtility.SetDirty(prefab);
+                    count++;
+                }
+            }
+            
+            AssetDatabase.SaveAssets();
+            return count;
+        }
+
+        private static void SetupBonusPrefabs(AudioClip pickupSound)
+        {
+            var guids = AssetDatabase.FindAssets("t:Prefab Power", new[] { "Assets/Space Shooter Template FREE" });
+            foreach (var guid in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null && prefab.GetComponent<Bonus>() != null)
+                {
+                    SetupBonusSound(prefab, pickupSound);
+                    EditorUtility.SetDirty(prefab);
+                }
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void RemoveOldEnemySoundBridges()
+        {
+            // シーン内の敵から古いEnemySoundBridgeを削除
+            foreach (var enemy in Object.FindObjectsByType<Enemy>(FindObjectsSortMode.None))
+            {
+                var oldBridge = enemy.GetComponent<Core.Audio.EnemySoundBridge>();
+                if (oldBridge != null)
+                {
+                    Object.DestroyImmediate(oldBridge);
+                }
+            }
+            
+            // 敵プレハブからも削除
+            var guids = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Space Shooter Template FREE/Prefabs/Enemies" });
+            foreach (var guid in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null && prefab.GetComponent<Enemy>() != null)
+                {
+                    var oldBridge = prefab.GetComponent<Core.Audio.EnemySoundBridge>();
+                    if (oldBridge != null)
+                    {
+                        Object.DestroyImmediate(oldBridge, true);
+                        EditorUtility.SetDirty(prefab);
+                    }
+                }
+            }
+            AssetDatabase.SaveAssets();
         }
 
         private static void EnsureBuildSettingsOnly(string path)
@@ -153,26 +252,34 @@ namespace ProjectSetup
             EditorBuildSettings.scenes = scenes;
         }
 
-        private static T FindAsset<T>(string exactPathOrNameContains) where T : Object
+        private static void WriteSetupSummary()
         {
-            if (exactPathOrNameContains.StartsWith("Assets/"))
+            try
             {
-                var obj = AssetDatabase.LoadAssetAtPath<T>(exactPathOrNameContains);
-                if (obj != null) return obj;
+                var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+                var logsDir = Path.Combine(projectRoot, "Logs");
+                Directory.CreateDirectory(logsDir);
+                var summaryPath = Path.Combine(logsDir, "setup_summary.txt");
+
+                var sb = new StringBuilder();
+                sb.AppendLine("=== Shooter Setup Summary ===");
+                sb.AppendLine($"Scene: {DEMO_SCENE_PATH}");
+                sb.AppendLine("Mode: Space Shooter Template FREE プリセット");
+                sb.AppendLine($"Date: {System.DateTime.Now}");
+                sb.AppendLine("");
+                sb.AppendLine("カスタム実装は削除され、Space Shooterのプリセットをそのまま使用します。");
+                sb.AppendLine("Input: Legacy Input (UnityEngine.Input) を使用");
+                sb.AppendLine("");
+                sb.AppendLine("有効な拡張機能:");
+                sb.AppendLine("  - ConsoleLogRecorder (ログ出力)");
+                sb.AppendLine("  - AspectEnforcerPortrait (9:16アスペクト比強制)");
+
+                File.WriteAllText(summaryPath, sb.ToString(), Encoding.UTF8);
             }
-            var guids = AssetDatabase.FindAssets("");
-            foreach (var g in guids)
+            catch (System.Exception e)
             {
-                var p = AssetDatabase.GUIDToAssetPath(g);
-                if (p.ToLowerInvariant().Contains(exactPathOrNameContains.ToLowerInvariant()))
-                {
-                    var obj = AssetDatabase.LoadAssetAtPath<T>(p);
-                    if (obj != null) return obj;
-                }
+                Debug.LogWarning($"セットアップサマリの書き込みに失敗: {e.Message}");
             }
-            return null;
         }
     }
 }
-
-

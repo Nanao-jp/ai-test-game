@@ -6,8 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Stage_VerticalShoot.unity
-    guid: 2651dcfb1adb88544a6450a3204dfe13
+    path: Assets/Space Shooter Template FREE/Scenes/Demo_Scene.unity
+    guid: d31945966fedec24fa8cf028f485e539
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100,
       type: 3}
